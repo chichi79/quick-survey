@@ -1,0 +1,10 @@
+{
+  "name": "legacy-poll-improvements",
+  "version": "0.1.0",
+  "private": true,
+  "description": "기존 레거시 뉴스 폴 개선 아이디어 프로토타입 (Vanilla JS)",
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes serve . -l 5190"
+  }
+}

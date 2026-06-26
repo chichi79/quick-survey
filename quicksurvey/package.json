@@ -1,0 +1,10 @@
+{
+  "name": "quicksurvey-fe",
+  "version": "0.1.0",
+  "private": true,
+  "description": "퀵서베이 FE 선행개발 - 응답자 화면 데모 (Vanilla JS)",
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes serve . -l 5173"
+  }
+}
