@@ -953,6 +953,10 @@ textarea.open-text__input {
   text-decoration: underline;
 }
 
+.back-link--top {
+  margin: 0 0 16px;
+}
+
 .report-view__survey-title {
   font-size: 16px;
   font-weight: 600;

@@ -202,6 +202,14 @@ function renderSurveyScreen(survey, { embed = false } = {}) {
   app.innerHTML = '';
   appendExpandBar(app, embed);
 
+  if (!embed) {
+    const back = document.createElement('a');
+    back.className = 'back-link back-link--top';
+    back.textContent = '← 목록으로 돌아가기';
+    back.addEventListener('click', navigateToHome);
+    app.appendChild(back);
+  }
+
   const mount = document.createElement('div');
   app.appendChild(mount);
 
