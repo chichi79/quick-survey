@@ -177,6 +177,11 @@ export function useProjectStore() {
     return project;
   }, [markDirty]);
 
+  const renameProject = useCallback((projectId: string, name: string) => {
+    markDirty();
+    setLocalProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, name } : p)));
+  }, [markDirty]);
+
   const removeProject = useCallback((projectId: string) => {
     markDirty();
     setLocalProjects((prev) => prev.filter((p) => p.id !== projectId));
@@ -267,6 +272,7 @@ export function useProjectStore() {
     surveys,
     saveStatus,
     addProject,
+    renameProject,
     removeProject,
     addSurvey,
     removeSurvey,

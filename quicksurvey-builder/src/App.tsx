@@ -14,6 +14,7 @@ function App() {
     projects,
     saveStatus,
     addProject,
+    renameProject,
     removeProject,
     addSurvey,
     removeSurvey,
@@ -31,6 +32,7 @@ function App() {
         projects={projects}
         onSelectProject={(projectId) => setView({ screen: 'project-detail', projectId })}
         onCreateProject={addProject}
+        onRenameProject={renameProject}
         onRemoveProject={(projectId) => {
           removeProject(projectId);
           setView({ screen: 'project-list' });
@@ -46,6 +48,7 @@ function App() {
         projects={projects}
         onSelectProject={(projectId) => setView({ screen: 'project-detail', projectId })}
         onCreateProject={addProject}
+        onRenameProject={renameProject}
         onRemoveProject={removeProject}
       />
     );

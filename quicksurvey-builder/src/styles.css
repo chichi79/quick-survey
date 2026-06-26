@@ -1088,6 +1088,20 @@ hr {
   font-weight: 600;
 }
 
+.project-card__name-input {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 2px 4px;
+  width: 100%;
+}
+
+.project-card__actions {
+  display: flex;
+  align-self: flex-end;
+  gap: 6px;
+}
+
+.project-card__rename,
 .project-card__delete {
   align-self: flex-end;
   font-size: 11px;

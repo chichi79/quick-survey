@@ -72,7 +72,15 @@ export function ProjectDetailView({
                 <button type="button" onClick={() => onSelectSurvey(survey.id)}>
                   편집
                 </button>
-                <button type="button" className="survey-list__delete" onClick={() => onRemoveSurvey(survey.id)}>
+                <button
+                  type="button"
+                  className="survey-list__delete"
+                  onClick={() => {
+                    if (window.confirm(`"${survey.title}" 설문을 삭제하시겠습니까?`)) {
+                      onRemoveSurvey(survey.id);
+                    }
+                  }}
+                >
                   삭제
                 </button>
               </div>

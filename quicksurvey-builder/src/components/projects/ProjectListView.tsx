@@ -7,6 +7,7 @@ interface ProjectListViewProps {
   projects: Project[];
   onSelectProject: (projectId: string) => void;
   onCreateProject: (name: string) => void;
+  onRenameProject: (projectId: string, name: string) => void;
   onRemoveProject: (projectId: string) => void;
 }
 
@@ -14,9 +15,23 @@ export function ProjectListView({
   projects,
   onSelectProject,
   onCreateProject,
+  onRenameProject,
   onRemoveProject,
 }: ProjectListViewProps) {
   const [newName, setNewName] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+
+  const startEditing = (project: Project) => {
+    setEditingId(project.id);
+    setEditingName(project.name);
+  };
+
+  const commitEditing = () => {
+    const name = editingName.trim();
+    if (editingId && name) onRenameProject(editingId, name);
+    setEditingId(null);
+  };
 
   const handleCreate = () => {
     const name = newName.trim();
@@ -69,18 +84,48 @@ export function ProjectListView({
 
         <div className="project-list-page__grid">
           {projects.map((project) => (
-            <div key={project.id} className="project-card" onClick={() => onSelectProject(project.id)}>
-              <span className="project-card__name">{project.name}</span>
-              <button
-                type="button"
-                className="project-card__delete"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemoveProject(project.id);
-                }}
-              >
-                삭제
-              </button>
+            <div key={project.id} className="project-card" onClick={() => editingId !== project.id && onSelectProject(project.id)}>
+              {editingId === project.id ? (
+                <input
+                  type="text"
+                  className="project-card__name-input"
+                  value={editingName}
+                  autoFocus
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitEditing();
+                    if (e.key === 'Escape') setEditingId(null);
+                  }}
+                  onBlur={commitEditing}
+                />
+              ) : (
+                <span className="project-card__name">{project.name}</span>
+              )}
+              <div className="project-card__actions">
+                <button
+                  type="button"
+                  className="project-card__rename"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startEditing(project);
+                  }}
+                >
+                  이름 수정
+                </button>
+                <button
+                  type="button"
+                  className="project-card__delete"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`"${project.name}" 프로젝트를 삭제하시겠습니까? 안의 설문도 모두 삭제됩니다.`)) {
+                      onRemoveProject(project.id);
+                    }
+                  }}
+                >
+                  삭제
+                </button>
+              </div>
             </div>
           ))}
           {projects.length === 0 && (
