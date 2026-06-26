@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const DEFAULT_BASE_URL = 'http://localhost:5180';
+const DEFAULT_BASE_URL = 'https://quick-survey-view.vercel.app';
 
 function buildEmbedSnippet(baseUrl: string, surveyId: string): string {
   const src = `${baseUrl.replace(/\/$/, '')}/?surveyId=${encodeURIComponent(surveyId)}`;
