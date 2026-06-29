@@ -3,12 +3,16 @@ import type { Project } from '../../models/project';
 import { isFirebaseConfigured } from '../../firebase';
 import { ProjectIntroDiagram } from './ProjectIntroDiagram';
 
+type SortOrder = 'name' | 'recent';
+
 interface ProjectListViewProps {
   projects: Project[];
   onSelectProject: (projectId: string) => void;
   onCreateProject: (name: string) => void;
   onRenameProject: (projectId: string, name: string) => void;
   onRemoveProject: (projectId: string) => void;
+  onOpenTrash: () => void;
+  trashCount: number;
 }
 
 export function ProjectListView({
@@ -17,10 +21,20 @@ export function ProjectListView({
   onCreateProject,
   onRenameProject,
   onRemoveProject,
+  onOpenTrash,
+  trashCount,
 }: ProjectListViewProps) {
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [search, setSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('recent');
+
+  const visibleProjects = projects
+    .filter((p) => p.name.toLowerCase().includes(search.trim().toLowerCase()))
+    .sort((a, b) =>
+      sortOrder === 'name' ? a.name.localeCompare(b.name) : b.createdAt.localeCompare(a.createdAt),
+    );
 
   const startEditing = (project: Project) => {
     setEditingId(project.id);
@@ -47,6 +61,9 @@ export function ProjectListView({
           <img src="/favicon.svg" alt="" className="app-header__logo" />
           <span className="app-header__brand-name">퀵서베이 빌더</span>
         </div>
+        <button type="button" className="app-header__trash" onClick={onOpenTrash}>
+          휴지통{trashCount > 0 ? ` (${trashCount})` : ''}
+        </button>
       </header>
 
       <div className="project-list-page__body">
@@ -82,8 +99,21 @@ export function ProjectListView({
           </button>
         </div>
 
+        <div className="project-list-page__filters">
+          <input
+            type="text"
+            placeholder="프로젝트 검색"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value as SortOrder)}>
+            <option value="recent">최근 생성순</option>
+            <option value="name">이름순</option>
+          </select>
+        </div>
+
         <div className="project-list-page__grid">
-          {projects.map((project) => (
+          {visibleProjects.map((project) => (
             <div key={project.id} className="project-card" onClick={() => editingId !== project.id && onSelectProject(project.id)}>
               {editingId === project.id ? (
                 <input
@@ -128,8 +158,10 @@ export function ProjectListView({
               </div>
             </div>
           ))}
-          {projects.length === 0 && (
-            <p className="project-list-page__empty">프로젝트를 만들어보세요.</p>
+          {visibleProjects.length === 0 && (
+            <p className="project-list-page__empty">
+              {projects.length === 0 ? '프로젝트를 만들어보세요.' : '검색 결과가 없습니다.'}
+            </p>
           )}
         </div>
       </div>

@@ -41,6 +41,11 @@ function withPublishedDefault(surveys: Survey[]): Survey[] {
   return surveys.map((survey) => (survey.published === undefined ? { ...survey, published: false } : survey));
 }
 
+/** 과거 버전에는 deletedAt 필드가 없었으므로, 없으면 정상(휴지통 밖)으로 간주한다. */
+function withDeletedAtDefault<T extends { deletedAt?: string | null }>(items: T[]): T[] {
+  return items.map((item) => (item.deletedAt === undefined ? { ...item, deletedAt: null } : item));
+}
+
 /** 과거 버전에는 기간/리워드 필드가 없었으므로, 없으면 "제한 없음 + 기본 리워드"로 간주한다. */
 function withScheduleDefaults(surveys: Survey[]): Survey[] {
   return surveys.map((survey) => ({
@@ -102,10 +107,14 @@ function mergeSurveys(local: Survey[], remote: Survey[]): Survey[] {
 }
 
 export function useProjectStore() {
-  const [localProjects, setLocalProjects] = useState<Project[]>(() => readFromStorage<Project>(PROJECTS_KEY));
+  const [localProjects, setLocalProjects] = useState<Project[]>(() =>
+    withDeletedAtDefault(readFromStorage<Project>(PROJECTS_KEY)),
+  );
   const [localSurveys, setLocalSurveys] = useState<Survey[]>(() =>
-    withScheduleDefaults(
-      withPublishedDefault(withSurveyKindDefault(dedupeQuestionIds(readFromStorage<Survey>(SURVEYS_KEY)))),
+    withDeletedAtDefault(
+      withScheduleDefaults(
+        withPublishedDefault(withSurveyKindDefault(dedupeQuestionIds(readFromStorage<Survey>(SURVEYS_KEY)))),
+      ),
     ),
   );
   const [remoteProjects, setRemoteProjects] = useState<Project[]>([]);
@@ -113,8 +122,13 @@ export function useProjectStore() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   const revertTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const projects = useMemo(() => mergeById(localProjects, remoteProjects), [localProjects, remoteProjects]);
-  const surveys = useMemo(() => mergeSurveys(localSurveys, remoteSurveys), [localSurveys, remoteSurveys]);
+  const allProjects = useMemo(() => mergeById(localProjects, remoteProjects), [localProjects, remoteProjects]);
+  const allSurveys = useMemo(() => mergeSurveys(localSurveys, remoteSurveys), [localSurveys, remoteSurveys]);
+
+  const projects = useMemo(() => allProjects.filter((p) => !p.deletedAt), [allProjects]);
+  const surveys = useMemo(() => allSurveys.filter((s) => !s.deletedAt), [allSurveys]);
+  const trashedProjects = useMemo(() => allProjects.filter((p) => p.deletedAt), [allProjects]);
+  const trashedSurveys = useMemo(() => allSurveys.filter((s) => s.deletedAt), [allSurveys]);
 
   const markSavedSoon = useCallback(() => {
     if (revertTimer.current) clearTimeout(revertTimer.current);
@@ -182,15 +196,79 @@ export function useProjectStore() {
     setLocalProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, name } : p)));
   }, [markDirty]);
 
-  const removeProject = useCallback((projectId: string) => {
-    markDirty();
-    setLocalProjects((prev) => prev.filter((p) => p.id !== projectId));
-    setLocalSurveys((prev) => prev.filter((s) => s.projectId !== projectId));
-    void deleteProjectFromFirestore(projectId);
-    for (const survey of surveys) {
-      if (survey.projectId === projectId) void deleteSurveyFromFirestore(survey.id);
-    }
-  }, [markDirty, surveys]);
+  /**
+   * 다른 브라우저에서 만들어 원격으로만 존재하는 프로젝트를 이 브라우저에서
+   * 처음 삭제/복구할 때는 로컬 목록에 없으니, 합쳐진 현재 값(allProjects)에서
+   * 가져와 로컬에 새로 추가하면서 patch를 적용한다.
+   */
+  const applyToProject = useCallback(
+    (projectId: string, updater: (p: Project) => Project) => {
+      markDirty();
+      setLocalProjects((prevLocal) => {
+        if (prevLocal.some((p) => p.id === projectId)) {
+          return prevLocal.map((p) => (p.id === projectId ? updater(p) : p));
+        }
+        const fromMerged = allProjects.find((p) => p.id === projectId);
+        if (!fromMerged) return prevLocal;
+        return [...prevLocal, updater(fromMerged)];
+      });
+    },
+    [markDirty, allProjects],
+  );
+
+  /**
+   * 다른 브라우저에서 만들어 원격으로만 존재하는 설문을 이 브라우저에서 처음
+   * 편집할 때는, 로컬 목록에 없으니 그냥 map으로 덮어쓸 수 없다 — 합쳐진
+   * 현재 값(allSurveys)을 가져와 로컬에 새로 추가하면서 patch를 적용한다.
+   */
+  const applyToSurvey = useCallback(
+    (surveyId: string, updater: (s: Survey) => Survey) => {
+      markDirty();
+      setLocalSurveys((prevLocal) => {
+        if (prevLocal.some((s) => s.id === surveyId)) {
+          return prevLocal.map((s) => (s.id === surveyId ? updater(s) : s));
+        }
+        const fromMerged = allSurveys.find((s) => s.id === surveyId);
+        if (!fromMerged) return prevLocal;
+        return [...prevLocal, updater(fromMerged)];
+      });
+    },
+    [markDirty, allSurveys],
+  );
+
+  /** 휴지통으로 보낸다 — 즉시 영구 삭제하지 않고 deletedAt만 찍어서 복구 가능하게 한다. 안의 설문도 같이 휴지통으로 보낸다. */
+  const removeProject = useCallback(
+    (projectId: string) => {
+      const now = new Date().toISOString();
+      applyToProject(projectId, (p) => ({ ...p, deletedAt: now }));
+      for (const survey of allSurveys) {
+        if (survey.projectId === projectId && !survey.deletedAt) {
+          applyToSurvey(survey.id, (s) => ({ ...s, deletedAt: now, published: false }));
+        }
+      }
+    },
+    [applyToProject, applyToSurvey, allSurveys],
+  );
+
+  const restoreProject = useCallback(
+    (projectId: string) => {
+      applyToProject(projectId, (p) => ({ ...p, deletedAt: null }));
+    },
+    [applyToProject],
+  );
+
+  const permanentlyDeleteProject = useCallback(
+    (projectId: string) => {
+      markDirty();
+      setLocalProjects((prev) => prev.filter((p) => p.id !== projectId));
+      setLocalSurveys((prev) => prev.filter((s) => s.projectId !== projectId));
+      void deleteProjectFromFirestore(projectId);
+      for (const survey of allSurveys) {
+        if (survey.projectId === projectId) void deleteSurveyFromFirestore(survey.id);
+      }
+    },
+    [markDirty, allSurveys],
+  );
 
   const addSurvey = useCallback(
     (projectId: string, title: string, kind: SurveyKind = 'multi', initialType?: QuestionType) => {
@@ -205,30 +283,67 @@ export function useProjectStore() {
     [markDirty],
   );
 
-  const removeSurvey = useCallback((surveyId: string) => {
-    markDirty();
-    setLocalSurveys((prev) => prev.filter((s) => s.id !== surveyId));
-    void deleteSurveyFromFirestore(surveyId);
-  }, [markDirty]);
-
-  /**
-   * 다른 브라우저에서 만들어 원격으로만 존재하는 설문을 이 브라우저에서 처음
-   * 편집할 때는, 로컬 목록에 없으니 그냥 map으로 덮어쓸 수 없다 — 합쳐진
-   * 현재 값(surveys)을 가져와 로컬에 새로 추가하면서 patch를 적용한다.
-   */
-  const applyToSurvey = useCallback(
-    (surveyId: string, updater: (s: Survey) => Survey) => {
+  const duplicateSurvey = useCallback(
+    (surveyId: string) => {
+      const source = allSurveys.find((s) => s.id === surveyId);
+      if (!source) return;
       markDirty();
-      setLocalSurveys((prevLocal) => {
-        if (prevLocal.some((s) => s.id === surveyId)) {
-          return prevLocal.map((s) => (s.id === surveyId ? updater(s) : s));
-        }
-        const fromMerged = surveys.find((s) => s.id === surveyId);
-        if (!fromMerged) return prevLocal;
-        return [...prevLocal, updater(fromMerged)];
-      });
+      const now = new Date().toISOString();
+      const clone: Survey = {
+        ...source,
+        id: `survey-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        title: `${source.title} (복사)`,
+        published: false,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      };
+      setLocalSurveys((prev) => [...prev, clone]);
+      return clone;
     },
-    [markDirty, surveys],
+    [markDirty, allSurveys],
+  );
+
+  /** 휴지통으로 보낸다 — 즉시 영구 삭제하지 않고 deletedAt만 찍어서 복구 가능하게 한다. */
+  const removeSurvey = useCallback(
+    (surveyId: string) => {
+      applyToSurvey(surveyId, (s) => ({ ...s, deletedAt: new Date().toISOString(), published: false }));
+    },
+    [applyToSurvey],
+  );
+
+  const restoreSurvey = useCallback(
+    (surveyId: string) => {
+      applyToSurvey(surveyId, (s) => ({ ...s, deletedAt: null }));
+    },
+    [applyToSurvey],
+  );
+
+  const permanentlyDeleteSurvey = useCallback(
+    (surveyId: string) => {
+      markDirty();
+      setLocalSurveys((prev) => prev.filter((s) => s.id !== surveyId));
+      void deleteSurveyFromFirestore(surveyId);
+    },
+    [markDirty],
+  );
+
+  const copyQuestionToSurvey = useCallback(
+    (sourceSurveyId: string, questionId: string, targetSurveyId: string) => {
+      const source = allSurveys.find((s) => s.id === sourceSurveyId);
+      const question = source?.questions.find((q) => q.id === questionId);
+      if (!question) return;
+      const clone: Question = {
+        ...question,
+        id: `${question.id}-copy-${Date.now()}`,
+      };
+      applyToSurvey(targetSurveyId, (s) => ({
+        ...s,
+        questions: [...s.questions, { ...clone, order: s.questions.length }],
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    [allSurveys, applyToSurvey],
   );
 
   const renameSurvey = useCallback(
@@ -267,19 +382,33 @@ export function useProjectStore() {
     [surveys],
   );
 
+  const getSurveysByProjectIncludingTrashed = useCallback(
+    (projectId: string) => allSurveys.filter((s) => s.projectId === projectId),
+    [allSurveys],
+  );
+
   return {
     projects,
     surveys,
+    trashedProjects,
+    trashedSurveys,
     saveStatus,
     addProject,
     renameProject,
     removeProject,
+    restoreProject,
+    permanentlyDeleteProject,
     addSurvey,
+    duplicateSurvey,
     removeSurvey,
+    restoreSurvey,
+    permanentlyDeleteSurvey,
     renameSurvey,
     updateSurveyQuestions,
     updateSurveySettings,
     togglePublished,
+    copyQuestionToSurvey,
     getSurveysByProject,
+    getSurveysByProjectIncludingTrashed,
   };
 }

@@ -3,28 +3,53 @@ import { useProjectStore } from './state/useProjectStore';
 import { ProjectListView } from './components/projects/ProjectListView';
 import { ProjectDetailView } from './components/projects/ProjectDetailView';
 import { SurveyEditorView } from './components/projects/SurveyEditorView';
+import { TrashView } from './components/projects/TrashView';
 
 type View =
   | { screen: 'project-list' }
+  | { screen: 'trash' }
   | { screen: 'project-detail'; projectId: string }
   | { screen: 'survey-editor'; projectId: string; surveyId: string };
 
 function App() {
   const {
     projects,
+    surveys,
+    trashedProjects,
+    trashedSurveys,
     saveStatus,
     addProject,
     renameProject,
     removeProject,
+    restoreProject,
+    permanentlyDeleteProject,
     addSurvey,
+    duplicateSurvey,
     removeSurvey,
+    restoreSurvey,
+    permanentlyDeleteSurvey,
     updateSurveyQuestions,
     updateSurveySettings,
     togglePublished,
+    copyQuestionToSurvey,
     getSurveysByProject,
   } = useProjectStore();
 
   const [view, setView] = useState<View>({ screen: 'project-list' });
+
+  if (view.screen === 'trash') {
+    return (
+      <TrashView
+        projects={trashedProjects}
+        surveys={trashedSurveys}
+        onBack={() => setView({ screen: 'project-list' })}
+        onRestoreProject={restoreProject}
+        onPermanentlyDeleteProject={permanentlyDeleteProject}
+        onRestoreSurvey={restoreSurvey}
+        onPermanentlyDeleteSurvey={permanentlyDeleteSurvey}
+      />
+    );
+  }
 
   if (view.screen === 'project-list') {
     return (
@@ -33,10 +58,9 @@ function App() {
         onSelectProject={(projectId) => setView({ screen: 'project-detail', projectId })}
         onCreateProject={addProject}
         onRenameProject={renameProject}
-        onRemoveProject={(projectId) => {
-          removeProject(projectId);
-          setView({ screen: 'project-list' });
-        }}
+        onRemoveProject={removeProject}
+        onOpenTrash={() => setView({ screen: 'trash' })}
+        trashCount={trashedProjects.length + trashedSurveys.length}
       />
     );
   }
@@ -50,6 +74,8 @@ function App() {
         onCreateProject={addProject}
         onRenameProject={renameProject}
         onRemoveProject={removeProject}
+        onOpenTrash={() => setView({ screen: 'trash' })}
+        trashCount={trashedProjects.length + trashedSurveys.length}
       />
     );
   }
@@ -63,6 +89,7 @@ function App() {
         onBack={() => setView({ screen: 'project-list' })}
         onCreateSurvey={(title, kind, initialType) => addSurvey(project.id, title, kind, initialType)}
         onSelectSurvey={(surveyId) => setView({ screen: 'survey-editor', projectId: project.id, surveyId })}
+        onDuplicateSurvey={duplicateSurvey}
         onRemoveSurvey={removeSurvey}
         onTogglePublished={togglePublished}
       />
@@ -78,6 +105,7 @@ function App() {
         onBack={() => setView({ screen: 'project-list' })}
         onCreateSurvey={(title, kind, initialType) => addSurvey(project.id, title, kind, initialType)}
         onSelectSurvey={(surveyId) => setView({ screen: 'survey-editor', projectId: project.id, surveyId })}
+        onDuplicateSurvey={duplicateSurvey}
         onRemoveSurvey={removeSurvey}
         onTogglePublished={togglePublished}
       />
@@ -88,10 +116,12 @@ function App() {
     <SurveyEditorView
       project={project}
       survey={survey}
+      otherSurveys={surveys.filter((s) => s.id !== survey.id)}
       saveStatus={saveStatus}
       onChangeQuestions={updateSurveyQuestions}
       onTogglePublished={togglePublished}
       onUpdateSettings={updateSurveySettings}
+      onCopyQuestionToSurvey={copyQuestionToSurvey}
       onBack={() => setView({ screen: 'project-detail', projectId: project.id })}
     />
   );

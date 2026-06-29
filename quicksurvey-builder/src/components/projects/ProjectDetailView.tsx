@@ -9,6 +9,7 @@ interface ProjectDetailViewProps {
   onBack: () => void;
   onCreateSurvey: (title: string, kind: SurveyKind, initialType?: QuestionType) => void;
   onSelectSurvey: (surveyId: string) => void;
+  onDuplicateSurvey: (surveyId: string) => void;
   onRemoveSurvey: (surveyId: string) => void;
   onTogglePublished: (surveyId: string) => void;
 }
@@ -24,6 +25,7 @@ export function ProjectDetailView({
   onBack,
   onCreateSurvey,
   onSelectSurvey,
+  onDuplicateSurvey,
   onRemoveSurvey,
   onTogglePublished,
 }: ProjectDetailViewProps) {
@@ -71,6 +73,9 @@ export function ProjectDetailView({
               <div className="survey-list__actions">
                 <button type="button" onClick={() => onSelectSurvey(survey.id)}>
                   편집
+                </button>
+                <button type="button" onClick={() => onDuplicateSurvey(survey.id)}>
+                  복제
                 </button>
                 <button
                   type="button"

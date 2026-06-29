@@ -15,6 +15,7 @@ type EditorTab = 'edit' | 'collect' | 'metric';
 interface SurveyEditorViewProps {
   project: Project;
   survey: Survey;
+  otherSurveys: Survey[];
   saveStatus: SaveStatus;
   onChangeQuestions: (surveyId: string, questions: Question[]) => void;
   onTogglePublished: (surveyId: string) => void;
@@ -22,16 +23,19 @@ interface SurveyEditorViewProps {
     surveyId: string,
     patch: { startDate: string | null; endDate: string | null; rewardPoint: number; completeMessage: string },
   ) => void;
+  onCopyQuestionToSurvey: (sourceSurveyId: string, questionId: string, targetSurveyId: string) => void;
   onBack: () => void;
 }
 
 export function SurveyEditorView({
   project,
   survey,
+  otherSurveys,
   saveStatus,
   onChangeQuestions,
   onTogglePublished,
   onUpdateSettings,
+  onCopyQuestionToSurvey,
   onBack,
 }: SurveyEditorViewProps) {
   const {
@@ -106,6 +110,10 @@ export function SurveyEditorView({
             onDuplicate={duplicateQuestion}
             onReorder={reorderQuestion}
             locked={survey.kind === 'single'}
+            otherSurveys={otherSurveys}
+            onCopyToSurvey={(questionId, targetSurveyId) =>
+              onCopyQuestionToSurvey(survey.id, questionId, targetSurveyId)
+            }
           />
           <div className="app-canvas">
             <div className="preview-mode-toggle">

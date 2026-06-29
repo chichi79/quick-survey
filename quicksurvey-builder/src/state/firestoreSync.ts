@@ -31,6 +31,7 @@ export async function syncSurveyToFirestore(survey: Survey): Promise<void> {
       endDate: survey.endDate,
       rewardPoint: survey.rewardPoint,
       completeMessage: survey.completeMessage,
+      deletedAt: survey.deletedAt,
       updatedAt: serverTimestamp(),
     });
   } catch (err) {
@@ -57,6 +58,7 @@ export async function syncProjectToFirestore(project: Project): Promise<void> {
     await setDoc(doc(db, PROJECTS_COLLECTION, project.id), {
       projectId: project.id,
       name: project.name,
+      deletedAt: project.deletedAt,
       updatedAt: serverTimestamp(),
     });
   } catch (err) {
@@ -96,6 +98,7 @@ export function subscribeRemoteProjects(onChange: (projects: Project[]) => void)
           id: typeof data.projectId === 'string' ? data.projectId : docSnap.id,
           name: typeof data.name === 'string' ? data.name : '(이름 없음)',
           createdAt: updatedAt,
+          deletedAt: typeof data.deletedAt === 'string' ? data.deletedAt : null,
         };
       });
       onChange(projects);
@@ -136,6 +139,7 @@ export function subscribeRemoteSurveys(onChange: (surveys: Survey[]) => void): (
               : '설문에 참여해주셔서 감사합니다!',
           createdAt: updatedAt,
           updatedAt,
+          deletedAt: typeof data.deletedAt === 'string' ? data.deletedAt : null,
         };
       });
       onChange(surveys);

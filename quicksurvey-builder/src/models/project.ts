@@ -6,6 +6,8 @@ export interface Project {
   id: string;
   name: string;
   createdAt: string;
+  /** 삭제 시각(ISO). null이면 휴지통에 없는 정상 상태. */
+  deletedAt: string | null;
 }
 
 export interface Survey {
@@ -24,6 +26,8 @@ export interface Survey {
   completeMessage: string;
   createdAt: string;
   updatedAt: string;
+  /** 삭제 시각(ISO). null이면 휴지통에 없는 정상 상태. */
+  deletedAt: string | null;
 }
 
 let counter = 1;
@@ -36,6 +40,7 @@ export function createProject(name: string): Project {
     id: genId('project'),
     name,
     createdAt: new Date().toISOString(),
+    deletedAt: null,
   };
 }
 
@@ -54,5 +59,6 @@ export function createSurvey(projectId: string, title: string, kind: SurveyKind 
     completeMessage: '설문에 참여해주셔서 감사합니다!',
     createdAt: now,
     updatedAt: now,
+    deletedAt: null,
   };
 }

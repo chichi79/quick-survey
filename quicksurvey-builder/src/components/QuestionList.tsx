@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { QUESTION_TYPE_LABELS, type Question, type QuestionType } from '../models/question';
+import type { Survey } from '../models/project';
 
 const ADDABLE_TYPES: QuestionType[] = [
   'single_choice',
@@ -69,6 +70,9 @@ interface QuestionListProps {
   onReorder: (draggedId: string, targetId: string) => void;
   /** 단일 문항 설문에서는 문항 추가/복제/삭제를 막아 항상 1개를 유지한다. */
   locked?: boolean;
+  /** 같은 프로젝트/다른 프로젝트의 다른 설문 목록 — "다른 설문으로 복사" 대상 후보. */
+  otherSurveys?: Survey[];
+  onCopyToSurvey?: (questionId: string, targetSurveyId: string) => void;
 }
 
 export function QuestionList({
@@ -81,10 +85,13 @@ export function QuestionList({
   onDuplicate,
   onReorder,
   locked = false,
+  otherSurveys = [],
+  onCopyToSurvey,
 }: QuestionListProps) {
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [copyMenuId, setCopyMenuId] = useState<string | null>(null);
 
   const resetDragState = () => {
     setDraggedId(null);
@@ -174,6 +181,34 @@ export function QuestionList({
                 >
                   ⧉
                 </button>
+              )}
+              {!locked && onCopyToSurvey && otherSurveys.length > 0 && (
+                <div className="question-list__copy-menu-wrap" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    title="다른 설문으로 복사"
+                    onClick={() => setCopyMenuId((current) => (current === q.id ? null : q.id))}
+                  >
+                    ↗
+                  </button>
+                  {copyMenuId === q.id && (
+                    <div className="question-list__copy-menu">
+                      <span className="question-list__copy-menu-title">다른 설문으로 복사</span>
+                      {otherSurveys.map((survey) => (
+                        <button
+                          key={survey.id}
+                          type="button"
+                          onClick={() => {
+                            onCopyToSurvey(q.id, survey.id);
+                            setCopyMenuId(null);
+                          }}
+                        >
+                          {survey.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
               {!locked && (
                 <button
