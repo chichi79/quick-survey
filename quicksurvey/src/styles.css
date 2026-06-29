@@ -114,8 +114,8 @@ section.section h2.section__title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: -20px -16px 20px;
-  padding: 14px 16px;
+  margin: -20px -16px 24px;
+  padding: 16px 16px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
@@ -145,12 +145,12 @@ section.section h2.section__title {
 
 .home-topbar__status {
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: -0.2px;
+  font-weight: 500;
+  color: var(--color-text-muted);
 }
 
 .home-topbar__status--ok {
-  color: var(--color-success);
+  color: var(--color-text-muted);
 }
 
 .home-topbar__status--pending {
@@ -164,48 +164,70 @@ section.section h2.section__title {
 .home {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 28px;
 }
 
 .home-section {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: var(--radius);
   padding: 18px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .home-section--muted {
-  background: var(--color-bg);
-  box-shadow: none;
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 
 .home-section__header {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: baseline;
+  gap: 6px;
   margin-bottom: 4px;
 }
 
 .home-section__title {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
   margin: 0;
 }
 
 .home-section__count {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-primary-dark);
-  background: var(--color-primary-light);
-  border-radius: 999px;
-  padding: 1px 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-text-muted);
 }
 
 .home-section__desc {
   font-size: 12px;
   color: var(--color-text-muted);
   margin: 0 0 14px;
+}
+
+.status-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.status-tabs__item {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 6px 4px 10px;
+  margin-right: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.status-tabs__item.is-active {
+  color: var(--color-text);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
 }
 
 .home-section__link {
@@ -240,33 +262,31 @@ section.section h2.section__title {
   align-items: center;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 12px;
+  padding: 14px;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: border-color 0.12s ease;
   background: var(--color-surface);
 }
 
 .mission-card:hover:not(.mission-card--disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-color: var(--color-primary);
 }
 
 .mission-card--disabled {
   cursor: default;
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
 .mission-card__thumb {
-  width: 56px;
-  height: 56px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg);
-  font-size: 26px;
+  background: var(--color-primary-light);
 }
 
 .mission-card__thumb img {
@@ -275,14 +295,20 @@ section.section h2.section__title {
   object-fit: cover;
 }
 
+.mission-card__thumb--placeholder {
+  font-size: 18px;
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
 .mission-card__body {
   flex: 1;
   min-width: 0;
 }
 
 .mission-card__title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   margin: 0 0 4px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -292,41 +318,35 @@ section.section h2.section__title {
 .mission-card__meta {
   display: flex;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-text-muted);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .mission-card__reward {
   color: var(--color-primary-dark);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .mission-card__badge {
   display: inline-block;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .mission-card__badge--available {
-  background: var(--color-primary-light);
   color: var(--color-primary-dark);
 }
 
 .mission-card__badge--completed {
-  background: #f0fdf4;
   color: var(--color-success);
 }
 
 .mission-card__badge--closed {
-  background: #f3f4f6;
   color: var(--color-text-muted);
 }
 
 .mission-card__badge--upcoming {
-  background: #fff7ed;
   color: #c2731c;
 }
 

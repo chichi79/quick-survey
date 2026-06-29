@@ -19,6 +19,16 @@ let isFirebaseConfigured = null;
 let isHomeVisible = false;
 let hasRoutedInitially = false;
 
+/** 홈에서 보고 있는 상태 필터 — '전체'/'참여 가능'/'예정'/'종료' 탭 중 하나. */
+let homeStatusFilter = 'all';
+
+const HOME_STATUS_TABS = [
+  { key: 'all', label: '전체' },
+  { key: 'available', label: '참여 가능' },
+  { key: 'upcoming', label: '예정' },
+  { key: 'closed', label: '종료' },
+];
+
 /**
  * 노출 기간을 기준으로 미션 카드 상태를 정한다 — quicksurvey 노출이 ON이면
  * 목록에서 숨기지 않고, 아직 시작 전이면 "예정"으로 딤드, 기간이 지났으면
@@ -102,9 +112,12 @@ function renderHome() {
   surveySectionTitle.className = 'home-section__title';
   surveySectionTitle.textContent = '오픈된 설문';
 
+  const filteredCards =
+    homeStatusFilter === 'all' ? cards : cards.filter((card) => card.status === homeStatusFilter);
+
   const surveySectionCount = document.createElement('span');
   surveySectionCount.className = 'home-section__count';
-  surveySectionCount.textContent = `${cards.length}`;
+  surveySectionCount.textContent = `${filteredCards.length}개`;
 
   surveySectionHeader.appendChild(surveySectionTitle);
   surveySectionHeader.appendChild(surveySectionCount);
@@ -113,11 +126,27 @@ function renderHome() {
   surveySectionDesc.className = 'home-section__desc';
   surveySectionDesc.textContent = '퀵서베이 빌더에서 노출 ON 한 설문이 실시간으로 표시됩니다.';
 
+  const tabs = document.createElement('div');
+  tabs.className = 'status-tabs';
+  HOME_STATUS_TABS.forEach(({ key, label }) => {
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = `status-tabs__item ${homeStatusFilter === key ? 'is-active' : ''}`;
+    const count = key === 'all' ? cards.length : cards.filter((card) => card.status === key).length;
+    tab.textContent = `${label} ${count}`;
+    tab.addEventListener('click', () => {
+      homeStatusFilter = key;
+      renderHome();
+    });
+    tabs.appendChild(tab);
+  });
+
   const list = document.createElement('div');
   list.className = 'mission-list';
 
   surveySection.appendChild(surveySectionHeader);
   surveySection.appendChild(surveySectionDesc);
+  surveySection.appendChild(tabs);
   surveySection.appendChild(list);
 
   const demoSection = document.createElement('section');
@@ -142,7 +171,7 @@ function renderHome() {
   main.appendChild(demoSection);
   app.appendChild(main);
 
-  renderMissionList(list, cards, (card) => {
+  renderMissionList(list, filteredCards, (card) => {
     navigateToSurvey(card.id);
   });
 }
