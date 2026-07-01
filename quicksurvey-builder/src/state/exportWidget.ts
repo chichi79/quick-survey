@@ -51,6 +51,8 @@ function renderQuestionJS(q: Question): string {
         .join(', ');
       return `renderEmojiReaction(wrap, ${JSON.stringify(q.id)}, [${optionsCode}])`;
     }
+    case 'vs_match':
+      return `renderVsMatch(wrap, ${JSON.stringify(q.id)}, ${JSON.stringify({ id: q.optionA.id, label: q.optionA.label, imageUrl: q.optionA.imageUrl ?? '' })}, ${JSON.stringify({ id: q.optionB.id, label: q.optionB.label, imageUrl: q.optionB.imageUrl ?? '' })})`;
     default:
       return `renderUnsupported(wrap, ${JSON.stringify((q as Question).type)})`;
   }
@@ -123,6 +125,11 @@ export function generateWidgetSnippet(survey: Survey, config: FirebaseConfig = D
       '.qs-emoji-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px; background: #fff; cursor: pointer; font-size: 12px; transition: border-color .15s; }',
       '.qs-emoji-btn .qs-emoji-icon { font-size: 26px; }',
       '.qs-emoji-btn.is-selected { border-color: #5b6af0; background: #f0f1ff; }',
+      '.qs-vs { display: flex; gap: 12px; align-items: stretch; }',
+      '.qs-vs__btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 12px; border: 2px solid #ddd; border-radius: 12px; background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; transition: border-color .15s, background .15s; }',
+      '.qs-vs__btn img { width: 100%; max-height: 100px; object-fit: cover; border-radius: 8px; }',
+      '.qs-vs__divider { display: flex; align-items: center; font-size: 13px; font-weight: 700; color: #aaa; padding: 0 2px; }',
+      '.qs-vs__btn.is-selected { border-color: #5b6af0; background: #f0f1ff; }',
       '.qs-submit { display: block; width: 100%; padding: 13px; background: #5b6af0; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }',
       '.qs-submit:hover { background: #4a59df; }',
       '.qs-submit:disabled { background: #aaa; cursor: default; }',
@@ -354,6 +361,32 @@ export function generateWidgetSnippet(survey: Survey, config: FirebaseConfig = D
     wrap.appendChild(row);
   }
 
+  function renderVsMatch(wrap, qId, optA, optB) {
+    var row = el('div', 'qs-vs');
+    row.dataset.qId = qId;
+    [optA, optB].forEach(function(opt, idx) {
+      var btn = el('button', 'qs-vs__btn');
+      btn.type = 'button';
+      btn.dataset.qId = qId;
+      btn.dataset.val = opt.id;
+      if (opt.imageUrl) {
+        var img = document.createElement('img');
+        img.src = opt.imageUrl;
+        img.alt = opt.label;
+        btn.appendChild(img);
+      }
+      btn.appendChild(el('span', '', opt.label));
+      btn.addEventListener('click', function() {
+        row.querySelectorAll('.qs-vs__btn').forEach(function(b) { b.classList.remove('is-selected'); });
+        btn.classList.add('is-selected');
+        row.dataset.val = opt.id;
+      });
+      row.appendChild(btn);
+      if (idx === 0) row.appendChild(el('div', 'qs-vs__divider', 'VS'));
+    });
+    wrap.appendChild(row);
+  }
+
   function renderUnsupported(wrap, type) {
     wrap.appendChild(el('p', '', '[' + type + ' 문항은 위젯에서 지원되지 않습니다]'));
   }
@@ -377,6 +410,8 @@ export function generateWidgetSnippet(survey: Survey, config: FirebaseConfig = D
       } else if (tag === 'div' && el.classList.contains('qs-stars')) {
         var v = Number(el.dataset.val);
         if (v > 0) answers[qId] = v;
+      } else if (tag === 'div' && el.classList.contains('qs-vs')) {
+        if (el.dataset.val) answers[qId] = el.dataset.val;
       } else if (tag === 'div' && el.classList.contains('qs-emoji-list')) {
         var sel4 = el.querySelector('.qs-emoji-btn.is-selected');
         if (sel4) answers[qId] = sel4.dataset.val;
