@@ -79,7 +79,7 @@ export function CollectTabView({ survey, onTogglePublished, onUpdateSettings }: 
       <section className="collect-tab__section">
         <h3>임베드 코드</h3>
         <div className="collect-tab__share">
-          <ShareButton defaultSurveyId={survey.id} />
+          <ShareButton defaultSurveyId={survey.id} survey={survey} />
         </div>
       </section>
     </div>
